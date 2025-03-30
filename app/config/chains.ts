@@ -16,23 +16,22 @@ export interface ChainConfig {
   isTestnet: boolean; // 是否是测试网
 }
 
-// 默认区块链配置
+// 默认区块链配置 - 只保留主网
 export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
-  // 主网
-  'ethereum': {
-    id: 'ethereum',
-    name: 'Ethereum',
-    rpcUrl: 'https://ethereum.publicnode.com',
-    explorerUrl: 'https://etherscan.io',
+  'espresso-rollup': {
+    id: 'espresso-rollup',
+    name: 'espresso-rollup',
+    rpcUrl: 'http://127.0.0.1:8547',
+    explorerUrl: '',
     tokenSymbol: 'ETH',
     active: true,
-    chainId: 1,
+    chainId: 77777,
     isTestnet: false
   },
   'arbitrum': {
     id: 'arbitrum',
     name: 'Arbitrum',
-    rpcUrl: 'https://arbitrum-one.publicnode.com',
+    rpcUrl: 'https://arbitrum-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
     explorerUrl: 'https://arbiscan.io',
     tokenSymbol: 'ETH',
     active: true,
@@ -42,7 +41,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   'optimism': {
     id: 'optimism',
     name: 'Optimism',
-    rpcUrl: 'https://optimism.publicnode.com',
+    rpcUrl: 'https://optimism-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
     explorerUrl: 'https://optimistic.etherscan.io',
     tokenSymbol: 'ETH',
     active: true,
@@ -52,104 +51,22 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   'base': {
     id: 'base',
     name: 'Base',
-    rpcUrl: 'https://base.publicnode.com',
+    rpcUrl: 'https://base-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
     explorerUrl: 'https://basescan.org',
     tokenSymbol: 'ETH',
     active: true,
     chainId: 8453,
     isTestnet: false
   },
-  'polygon': {
-    id: 'polygon',
-    name: 'Polygon',
-    rpcUrl: 'https://polygon-bor.publicnode.com',
-    explorerUrl: 'https://polygonscan.com',
-    tokenSymbol: 'MATIC',
-    active: true,
-    chainId: 137,
-    isTestnet: false
-  },
   'zksync': {
     id: 'zksync',
     name: 'zkSync Era',
-    rpcUrl: 'https://mainnet.era.zksync.io',
+    rpcUrl: 'https://zksync-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
     explorerUrl: 'https://explorer.zksync.io',
     tokenSymbol: 'ETH',
     active: true,
     chainId: 324,
     isTestnet: false
-  },
-  'linea': {
-    id: 'linea',
-    name: 'Linea',
-    rpcUrl: 'https://linea.blockpi.network/v1/rpc/public',
-    explorerUrl: 'https://lineascan.build',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 59144,
-    isTestnet: false
-  },
-  'scroll': {
-    id: 'scroll',
-    name: 'Scroll',
-    rpcUrl: 'https://rpc.scroll.io',
-    explorerUrl: 'https://scrollscan.com',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 534352,
-    isTestnet: false
-  },
-  
-  // 测试网
-  'sepolia': {
-    id: 'sepolia',
-    name: 'Sepolia',
-    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
-    explorerUrl: 'https://sepolia.etherscan.io',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 11155111,
-    isTestnet: true
-  },
-  'mumbai': {
-    id: 'mumbai',
-    name: 'Mumbai',
-    rpcUrl: 'https://polygon-mumbai-bor.publicnode.com',
-    explorerUrl: 'https://mumbai.polygonscan.com',
-    tokenSymbol: 'MATIC',
-    active: true,
-    chainId: 80001,
-    isTestnet: true
-  },
-  'arbitrum-goerli': {
-    id: 'arbitrum-goerli',
-    name: 'Arbitrum Goerli',
-    rpcUrl: 'https://arbitrum-goerli.publicnode.com',
-    explorerUrl: 'https://goerli.arbiscan.io',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 421613,
-    isTestnet: true
-  },
-  'optimism-goerli': {
-    id: 'optimism-goerli',
-    name: 'Optimism Goerli',
-    rpcUrl: 'https://optimism-goerli.publicnode.com',
-    explorerUrl: 'https://goerli-optimism.etherscan.io',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 420,
-    isTestnet: true
-  },
-  'base-goerli': {
-    id: 'base-goerli',
-    name: 'Base Goerli',
-    rpcUrl: 'https://base-goerli.publicnode.com',
-    explorerUrl: 'https://goerli.basescan.org',
-    tokenSymbol: 'ETH',
-    active: false,
-    chainId: 84531,
-    isTestnet: true
   }
 };
 
@@ -199,5 +116,27 @@ export const addChainConfig = (config: ChainConfig): void => {
     throw new Error('Chain ID is required');
   }
   
-  CHAIN_CONFIGS[config.id] = config;
+  if (!config.name) {
+    throw new Error('Chain name is required');
+  }
+  
+  if (!config.rpcUrl) {
+    throw new Error('RPC URL is required');
+  }
+  
+  // 确保链ID是唯一的
+  if (CHAIN_CONFIGS[config.id]) {
+    throw new Error(`Chain with ID ${config.id} already exists`);
+  }
+  
+  // 设置默认值
+  const newConfig: ChainConfig = {
+    ...config,
+    explorerUrl: config.explorerUrl || '',
+    tokenSymbol: config.tokenSymbol || 'ETH',
+    active: config.active !== undefined ? config.active : true,
+    isTestnet: config.isTestnet !== undefined ? config.isTestnet : false
+  };
+  
+  CHAIN_CONFIGS[config.id] = newConfig;
 }; 

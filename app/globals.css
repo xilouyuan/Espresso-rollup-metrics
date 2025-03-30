@@ -1,12 +1,20 @@
 :root {
   --primary-color: #3498db;
+  --primary-color-dark: #2980b9;
+  --primary-color-rgb: 52, 152, 219;
   --secondary-color: #2ecc71;
-  --dark-color: #2c3e50;
-  --light-color: #ecf0f1;
+  --dark-color: #333;
+  --light-color: #f8f9fa;
   --danger-color: #e74c3c;
   --warning-color: #f39c12;
   --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --border-radius: 8px;
+  --border-radius: 6px;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --card-bg: white;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --border-color: #ddd;
+  --input-bg: white;
 }
 
 * {
@@ -51,55 +59,59 @@ header {
 }
 
 .add-chain-form {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  background-color: white;
-  padding: 15px;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
 }
 
 .form-group {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 5px;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
   font-weight: 600;
-  font-size: 14px;
-  color: var(--dark-color);
+  color: var(--text-secondary);
 }
 
 .form-group input {
-  width: 100%;
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-  border-radius: var(--border-radius);
-  font-size: 14px;
-  transition: border-color 0.3s;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
 }
 
-button {
-  background-color: var(--primary-color);
+.add-chain-form button {
+  height: 42px;
+  align-self: flex-end;
+  margin-top: 1.9rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color);
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: var(--border-radius);
-  cursor: pointer;
+  border-radius: 4px;
   font-weight: 600;
-  transition: background-color 0.3s;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-button:hover {
-  background-color: #2980b9;
+.add-chain-form button:hover {
+  background: var(--primary-color-dark);
 }
 
 .card-container {
@@ -266,6 +278,17 @@ button:hover {
 body.dark-mode {
   background-color: #1a202c;
   color: var(--light-color);
+  --primary-color: #3498db;
+  --primary-color-dark: #2980b9;
+  --secondary-color: #2ecc71;
+  --dark-color: #eee;
+  --light-color: #333;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --card-bg: #2c2c2c;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --border-color: #555;
+  --input-bg: #222;
 }
 
 body.dark-mode .card,
@@ -332,11 +355,11 @@ body.dark-mode header {
   }
 
   .add-chain-form {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
-
-  .form-group {
-    width: 100%;
+  
+  .add-chain-form button {
+    margin-top: 0.5rem;
   }
 }
 
@@ -377,11 +400,16 @@ body.dark-mode header {
 }
 
 .blockchain-stats {
-  background-color: white;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  padding: 20px;
-  margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+  .blockchain-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .time-selector {
@@ -425,10 +453,12 @@ body.dark-mode header {
 }
 
 .stats-card {
-  background-color: #f8f9fa;
-  border-radius: var(--border-radius);
-  padding: 15px;
-  transition: transform 0.2s;
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
 .stats-card:hover {
@@ -585,4 +615,176 @@ body.dark-mode .interval-item.active {
   background-color: var(--warning-color, #f59e0b);
   color: white;
   font-weight: 600;
+}
+
+/* 加载状态动画 */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.refresh-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.testnet-badge {
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  margin-left: 4px;
+  background-color: rgba(255, 165, 0, 0.2);
+  color: #ff9800;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* Chain Selector Section */
+.chain-selector-section {
+  margin: 2rem 0;
+}
+
+.chain-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.chain-button {
+  padding: 0.5rem 1rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chain-button.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.chain-button:hover {
+  border-color: var(--primary-color);
+}
+
+/* Time Interval Selector */
+.interval-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.interval-selector span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.interval-button {
+  padding: 0.3rem 0.6rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.3rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.interval-button.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.interval-button:hover {
+  border-color: var(--primary-color);
+}
+
+/* Blockchain Stats Section */
+.blockchain-stats-section {
+  margin: 2rem 0;
+}
+
+.blockchain-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-card {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-title {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Add Chain Form Section */
+.add-chain-section {
+  margin: 2rem 0;
+  background-color: var(--card-bg);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+}
+
+.dark-mode .stat-card {
+  background-color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.stat-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.dark-mode .stat-title {
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.dark-mode .stat-value {
+  color: #e2e8f0;
 }
