@@ -1,26 +1,588 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary-color: #3498db;
+  --secondary-color: #2ecc71;
+  --dark-color: #2c3e50;
+  --light-color: #ecf0f1;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --border-radius: 8px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f5f7fa;
+  color: var(--dark-color);
+  line-height: 1.6;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+
+.logo svg {
+  margin-right: 10px;
+}
+
+.add-chain-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background-color: white;
+  padding: 15px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 30px;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--dark-color);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card-title {
+  font-size: 16px;
+  color: #7f8c8d;
+  margin-bottom: 5px;
+}
+
+.card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--dark-color);
+}
+
+.rollup-table {
+  width: 100%;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+.rollup-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rollup-table th, .rollup-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.rollup-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #636e72;
+}
+
+.rollup-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rollup-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.chain-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.chain-item {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.chain-item.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.chain-item:hover:not(.active) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: transparent;
+  color: var(--primary-color);
+  padding: 5px 10px;
+}
+
+.refresh-button:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 30px;
+  height: 300px;
+  position: relative;
+}
+
+.chart-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #95a5a6;
+  font-size: 14px;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.status-active {
+  background-color: var(--secondary-color);
+}
+
+.status-inactive {
+  background-color: var(--danger-color);
+}
+
+/* 暗黑模式样式 */
+body.dark-mode {
+  background-color: #1a202c;
+  color: var(--light-color);
+}
+
+body.dark-mode .card,
+body.dark-mode .chart-container,
+body.dark-mode .rollup-table,
+body.dark-mode .add-chain-form,
+body.dark-mode .chain-item {
+  background-color: #2d3748;
+  color: var(--light-color);
+}
+
+body.dark-mode .card-title {
+  color: #a0aec0;
+}
+
+body.dark-mode .card-value {
+  color: var(--light-color);
+}
+
+body.dark-mode .rollup-table th {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+body.dark-mode .rollup-table td {
+  border-color: #4a5568;
+}
+
+body.dark-mode .rollup-table tr:hover {
+  background-color: #364154;
+}
+
+body.dark-mode .chain-item:not(.active) {
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+body.dark-mode input {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: var(--light-color);
+}
+
+body.dark-mode input::placeholder {
+  color: #a0aec0;
+}
+
+body.dark-mode .section-title {
+  color: var(--light-color);
+}
+
+body.dark-mode .chart-placeholder {
+  color: #a0aec0;
+}
+
+body.dark-mode header {
+  border-color: #4a5568;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .card-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .add-chain-form {
+    flex-direction: column;
+  }
+
+  .form-group {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-container {
+    grid-template-columns: 1fr;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
+
+.explorer-link {
+  font-size: 14px;
+  margin-left: 10px;
+  padding: 3px 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  color: #333;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.explorer-link:hover {
+  background-color: #e0e0e0;
+}
+
+.dark-mode .explorer-link {
+  background-color: #333;
+  color: #f0f0f0;
+}
+
+.dark-mode .explorer-link:hover {
+  background-color: #444;
+}
+
+.blockchain-stats {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.time-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.time-selector button {
+  background-color: #f0f0f0;
+  color: #333;
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-selector button.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.stats-header h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.stats-card {
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
+  padding: 15px;
+  transition: transform 0.2s;
+}
+
+.stats-card:hover {
+  transform: translateY(-3px);
+}
+
+.stats-title {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-bottom: 5px;
+}
+
+.stats-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--dark-color);
+}
+
+.error-message {
+  background-color: #ffecec;
+  color: #e74c3c;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+/* 暗黑模式样式 */
+body.dark-mode .blockchain-stats {
+  background-color: #2d3748;
+}
+
+body.dark-mode .time-selector button {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+body.dark-mode .time-selector button.active {
+  background-color: var(--primary-color);
+}
+
+body.dark-mode .stats-card {
+  background-color: #4a5568;
+}
+
+body.dark-mode .stats-title {
+  color: #a0aec0;
+}
+
+body.dark-mode .stats-value {
+  color: var(--light-color);
+}
+
+body.dark-mode .error-message {
+  background-color: #42292c;
+  color: #f8a8a8;
+}
+
+/* 时间间隔选择器样式 */
+.header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.time-interval-selector {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+.interval-item {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.interval-item:hover {
+  background-color: #e0e0e0;
+}
+
+.interval-item.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+body.dark-mode .time-interval-selector {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+body.dark-mode .interval-item:hover {
+  background-color: #4a4a4a;
+}
+
+body.dark-mode .interval-item.active {
+  background-color: var(--primary-color);
+}
+
+/* 网络类型选择器样式 */
+.network-type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.network-type-item {
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  background-color: var(--background-secondary);
+  transition: all 0.2s ease;
+}
+
+.network-type-item:hover {
+  background-color: var(--background-hover);
+}
+
+.network-type-item.active {
+  background-color: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+/* 链信息区样式 */
+.chain-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.testnet-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--warning-color, #f59e0b);
+  color: white;
+  font-weight: 600;
 }

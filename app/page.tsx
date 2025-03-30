@@ -1,103 +1,331 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Sun, Moon, RefreshCw, Database } from 'lucide-react'
+import { formatTransactionCount, formatGasUsed, formatTPS, formatUserCount, getExplorerUrl } from './utils'
+import { getActiveChains, getMainnets, getTestnets, CHAIN_CONFIGS, ChainConfig, getAllChainIds } from './config/chains'
+import type { BlockchainData } from './utils'
+
+// 内联定义TransactionChart组件
+const TransactionChart = ({ chainId }: { chainId: string }) => {
+  return (
+    <div className="chart-container">
+      <div className="chart-placeholder">
+        {chainId} transaction chart will be displayed here
+      </div>
+    </div>
+  )
+}
+
+interface StatData {
+  title: string;
+  value: string;
+}
+
+interface TableData {
+  name: string;
+  id: string;
+  contractCreations: string;
+  gasUsed: string;
+  transactions: string;
+  users: string;
+  active: boolean;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [darkMode, setDarkMode] = useState(false)
+  const [chains, setChains] = useState<ChainConfig[]>(Object.values(CHAIN_CONFIGS))
+  const [selectedChain, setSelectedChain] = useState(chains[0]?.id || '')
+  const [chainInput, setChainInput] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [blockchainData, setBlockchainData] = useState<BlockchainData | null>(null)
+  const [allChainsData, setAllChainsData] = useState<Record<string, BlockchainData>>({})
+  const [timeInterval, setTimeInterval] = useState<string>('1h')
+  const [networkType, setNetworkType] = useState<'all' | 'mainnet' | 'testnet'>('all')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Filter chains based on network type
+  const filteredChains = (() => {
+    switch (networkType) {
+      case 'mainnet':
+        return chains.filter(chain => !chain.isTestnet);
+      case 'testnet':
+        return chains.filter(chain => chain.isTestnet);
+      default:
+        return chains;
+    }
+  })();
+
+  // 所有链的数据
+  const allStatsData: Record<string, StatData[]> = {
+    sepolia: [
+      { title: 'Total Transactions', value: blockchainData ? formatTransactionCount(blockchainData.transactions) : '246,853' },
+      { title: 'Contract Creations', value: blockchainData ? formatTransactionCount(blockchainData.contractCreations) : '1,245' },
+      { title: 'Active Users', value: blockchainData ? formatTransactionCount(blockchainData.activeUsers) : '8,721' },
+      { title: 'Gas Used', value: blockchainData ? formatGasUsed(blockchainData.gasUsed / 1e18, 'sepolia') : '12.45 ETH' }
+    ],
+    mumbai: [
+      { title: 'Total Transactions', value: '187,654' },
+      { title: 'Contract Creations', value: '987' },
+      { title: 'Active Users', value: '7,432' },
+      { title: 'Gas Used', value: '8.76 MATIC' }
+    ],
+    'arbitrum-goerli': [
+      { title: 'Total Transactions', value: '156,432' },
+      { title: 'Contract Creations', value: '654' },
+      { title: 'Active Users', value: '6,543' },
+      { title: 'Gas Used', value: '5.67 ETH' }
+    ],
+    'optimism-goerli': [
+      { title: 'Total Transactions', value: '87,654' },
+      { title: 'Contract Creations', value: '432' },
+      { title: 'Active Users', value: '4,321' },
+      { title: 'Gas Used', value: '3.21 ETH' }
+    ],
+    'base-goerli': [
+      { title: 'Total Transactions', value: '65,432' },
+      { title: 'Contract Creations', value: '321' },
+      { title: 'Active Users', value: '2,987' },
+      { title: 'Gas Used', value: '1.87 ETH' }
+    ]
+  }
+
+  // 生成表格数据
+  const generateTableData = (): TableData[] => {
+    return chains.map(chain => {
+      const data = allChainsData[chain.id];
+      return {
+        name: chain.name,
+        id: chain.id,
+        contractCreations: data ? formatTransactionCount(data.contractCreations) : '0',
+        gasUsed: data ? formatGasUsed(data.gasUsed / 1e18, chain.id) : `0 ${chain.tokenSymbol}`,
+        transactions: data ? formatTransactionCount(data.transactions) : '0',
+        users: data ? formatTransactionCount(data.activeUsers) : '0',
+        active: chain.active
+      };
+    });
+  };
+  
+  // 获取表格数据
+  const tableData = generateTableData();
+
+  // 获取当前选中链的数据
+  const filteredTableData = tableData.filter(item => item.id === selectedChain)
+  
+  // 获取当前选中链的统计数据
+  const currentStatsData = (() => {
+    if (blockchainData && selectedChain) {
+      return [
+        { title: 'Total Transactions', value: formatTransactionCount(blockchainData.transactions) },
+        { title: 'Contract Creations', value: formatTransactionCount(blockchainData.contractCreations) },
+        { title: 'Active Users', value: formatTransactionCount(blockchainData.activeUsers) },
+        { title: 'Gas Used', value: formatGasUsed(blockchainData.gasUsed / 1e18, selectedChain) }
+      ];
+    }
+    return allStatsData[selectedChain] || allStatsData.sepolia;
+  })();
+
+  const handleBlockchainDataLoaded = (data: BlockchainData) => {
+    setBlockchainData(data);
+    setAllChainsData(prev => ({
+      ...prev,
+      [selectedChain]: data
+    }));
+  };
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+  }
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode')
+    } else {
+      document.body.classList.remove('dark-mode')
+    }
+  }, [darkMode])
+
+  const addChain = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (chainInput && nameInput) {
+      const newChain: ChainConfig = {
+        id: chainInput.toLowerCase(),
+        name: nameInput,
+        rpcUrl: '',  // 用户需要在另一个界面设置详细信息
+        explorerUrl: '',
+        tokenSymbol: 'ETH',
+        active: true,
+        isTestnet: networkType === 'testnet' // 根据当前选择的网络类型设置
+      };
+      
+      setChains([...chains, newChain]);
+      setChainInput('');
+      setNameInput('');
+    }
+  }
+
+  // Set the selected chain when networkType changes
+  useEffect(() => {
+    const availableChains = filteredChains;
+    if (availableChains.length > 0) {
+      // Check if currently selected chain is in the filtered list
+      const currentChainStillAvailable = availableChains.some(chain => chain.id === selectedChain);
+      if (!currentChainStillAvailable) {
+        setSelectedChain(availableChains[0].id);
+      }
+    }
+  }, [networkType, filteredChains, selectedChain]);
+
+  return (
+    <div className="container">
+      <header>
+        <div className="logo">
+          <Database size={24} />
+          <span>Layer2 Leaderboard</span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        <button onClick={toggleDarkMode} className="refresh-button">
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          {darkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
+      </header>
+
+      <form className="add-chain-form" onSubmit={addChain}>
+        <div className="form-group">
+          <label htmlFor="chain-id">Chain ID</label>
+          <input
+            id="chain-id"
+            type="text"
+            placeholder="e.g. holesky"
+            value={chainInput}
+            onChange={(e) => setChainInput(e.target.value)}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        </div>
+        <div className="form-group">
+          <label htmlFor="chain-name">Display Name</label>
+          <input
+            id="chain-name"
+            type="text"
+            placeholder="e.g. Holesky"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        </div>
+        <button type="submit">Add Chain</button>
+      </form>
+
+      <div className="network-type-selector">
+        <div 
+          className={`network-type-item ${networkType === 'all' ? 'active' : ''}`} 
+          onClick={() => setNetworkType('all')}
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          All Networks
+        </div>
+        <div 
+          className={`network-type-item ${networkType === 'mainnet' ? 'active' : ''}`} 
+          onClick={() => setNetworkType('mainnet')}
+        >
+          Mainnets
+        </div>
+        <div 
+          className={`network-type-item ${networkType === 'testnet' ? 'active' : ''}`} 
+          onClick={() => setNetworkType('testnet')}
+        >
+          Testnets
+        </div>
+      </div>
+
+      <div className="chain-selector">
+        {filteredChains.map((chain) => (
+          <div
+            key={chain.id}
+            className={`chain-item ${selectedChain === chain.id ? 'active' : ''}`}
+            onClick={() => setSelectedChain(chain.id)}
+          >
+            {chain.name}
+          </div>
+        ))}
+      </div>
+
+      <div className="section-header">
+        <h2 className="section-title">
+          {chains.find(c => c.id === selectedChain)?.name || ''} Overview
+          {getExplorerUrl(selectedChain) && (
+            <a 
+              href={getExplorerUrl(selectedChain)} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="explorer-link"
+            >
+              Explorer
+            </a>
+          )}
+        </h2>
+        <div className="header-actions">
+          <div className="time-interval-selector">
+            {['1h', '4h', '8h', '1D', '1W'].map((interval) => (
+              <div
+                key={interval}
+                className={`interval-item ${timeInterval === interval ? 'active' : ''}`}
+                onClick={() => setTimeInterval(interval)}
+              >
+                {interval}
+              </div>
+            ))}
+          </div>
+          <button className="refresh-button">
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="card-container">
+        {currentStatsData.map((stat, index) => (
+          <div className="card" key={index}>
+            <div className="card-title">{stat.title}</div>
+            <div className="card-value">{stat.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-header">
+        <h2 className="section-title">Performance Chart</h2>
+      </div>
+
+      <TransactionChart chainId={selectedChain} />
+
+      <div className="section-header">
+        <h2 className="section-title">Testnet Comparison</h2>
+      </div>
+
+      <div className="rollup-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Contract Creations</th>
+              <th>Gas Used</th>
+              <th>Transactions</th>
+              <th>Users</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTableData.map((row, index) => (
+              <tr key={index}>
+                <td>{row.name}</td>
+                <td>{row.contractCreations}</td>
+                <td>{row.gasUsed}</td>
+                <td>{row.transactions}</td>
+                <td>{row.users}</td>
+                <td>
+                  <span className={`status-indicator ${row.active ? 'status-active' : 'status-inactive'}`}></span>
+                  {row.active ? 'Active' : 'Inactive'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  );
+  )
 }
