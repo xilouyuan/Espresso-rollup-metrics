@@ -21,7 +21,7 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   'espresso-rollup': {
     id: 'espresso-rollup',
     name: 'Espresso Rollup',
-    rpcUrl: 'http://43.133.35.225:8547',
+    rpcUrl: 'http://127.0.0.1:8547',
     explorerUrl: '',
     tokenSymbol: 'ETH',
     active: true,

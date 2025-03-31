@@ -788,3 +788,27 @@ body.dark-mode .interval-item.active {
 .dark-mode .stat-value {
   color: #e2e8f0;
 }
+
+.custom-range-input {
+  width: 100px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 0 8px;
+  font-size: 14px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.custom-range-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.custom-range-input::-webkit-inner-spin-button,
+.custom-range-input::-webkit-outer-spin-button {
+  opacity: 1;
+  height: 24px;
+  margin-left: 4px;
+}

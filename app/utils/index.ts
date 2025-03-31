@@ -16,6 +16,7 @@ export interface BlockchainData {
   contractCreations: number;
   activeUsers: number;
   gasUsed: number;
+  latestBlock: number;  // 添加最新区块高度
 }
 
 // 定义返回数据的类型
@@ -82,121 +83,77 @@ async function withRetry<T>(
 
 // 批量处理区块
 async function processBlockBatch(
-    provider: JsonRpcProvider,
-    blocks: number[],
-    metrics: RollupMetrics,
-    uniqueAddresses: Set<string>
+  provider: ethers.JsonRpcProvider,
+  blocks: number[],
+  metrics: {
+    transactions: number;
+    contractCreations: number;
+    uniqueAddresses: Set<string>;
+    totalGasUsed: bigint;
+  }
 ): Promise<void> {
-  const batchPromises = blocks.map(blockNum =>
-      withRetry(async () => {
-        const block = await provider.getBlock(blockNum, true);
-        if (!block || !block.transactions) return;
+  const batchPromises = blocks.map(async (blockNum) => {
+    try {
+      // 获取区块
+      const block = await provider.getBlock(blockNum);
+      if (!block) {
+        console.warn(`区块 ${blockNum} 数据为空，跳过`);
+        return;
+      }
 
-        for (const txHash of block.transactions as string[]) {
-          const tx = await provider.getTransaction(txHash);
-          if (!tx) continue;
-
-          metrics.transactions += 1;
-          if (!tx.to) metrics.contractCreations += 1;
-
-          const receipt = await provider.getTransactionReceipt(txHash);
-          if (receipt) metrics.gasUsed += BigInt(receipt.gasUsed.toString());
-
-          uniqueAddresses.add(tx.from);
-          if (tx.to) uniqueAddresses.add(tx.to);
+      // 处理交易
+      for (const txHash of block.transactions) {
+        // 获取交易
+        const tx = await provider.getTransaction(txHash);
+        if (!tx) {
+          console.warn(`交易 ${txHash} 数据为空，跳过`);
+          continue;
         }
-      })
-  );
+
+        // 增加交易计数
+        metrics.transactions++;
+
+        // 处理地址
+        if (tx.from) {
+          metrics.uniqueAddresses.add(tx.from.toLowerCase());
+        }
+
+        if (tx.to) {
+          metrics.uniqueAddresses.add(tx.to.toLowerCase());
+        } else {
+          // 没有接收方地址的交易通常是合约创建
+          metrics.contractCreations++;
+        }
+
+        // 获取交易回执以获取gas使用量和gas价格
+        const receipt = await provider.getTransactionReceipt(txHash);
+        if (receipt && receipt.gasUsed) {
+          // 计算实际消耗的ETH
+          const gasUsed = BigInt(receipt.gasUsed.toString());
+          const gasPrice = tx.gasPrice ? BigInt(tx.gasPrice.toString()) : BigInt(0);
+          const gasCost = gasUsed * gasPrice;
+          metrics.totalGasUsed += gasCost;
+        } else {
+          console.warn(`交易 ${txHash} 的收据为空，跳过Gas计算`);
+        }
+      }
+    } catch (error) {
+      console.error(`处理区块 ${blockNum} 时出错:`, error);
+    }
+  });
+
   await Promise.all(batchPromises);
 }
 
 /**
- * 获取Rollup的活动指标数据
- */
-async function getRollupMetrics(
-    rpcUrl: string,
-    blockRange: number = 1000,
-    batchSize: number = 1  // 减小批量大小以降低请求频率
-): Promise<RollupMetrics> {
-  validateInputs(rpcUrl, blockRange);
-
-  const provider = new JsonRpcProvider(rpcUrl);
-  await withRetry(() => provider.getNetwork(), 3).catch(() => {
-    throw new Error(`无法连接到RPC端点: ${rpcUrl}`);
-  });
-
-  const metrics: RollupMetrics = {
-    transactions: 0,
-    contractCreations: 0,
-    gasUsed: BigInt(0),
-    uniqueAddresses: 0,
-  };
-  const uniqueAddresses = new Set<string>();
-
-  const latestBlock = await withRetry(() => provider.getBlockNumber());
-  const startBlock = Math.max(0, latestBlock - blockRange + 1);
-
-  for (let blockNum = startBlock; blockNum <= latestBlock; blockNum += batchSize) {
-    const endBatch = Math.min(blockNum + batchSize - 1, latestBlock);
-    const batchBlocks = Array.from(
-        { length: endBatch - blockNum + 1 },
-        (_, i) => blockNum + i
-    );
-
-    console.log(`处理区块 ${blockNum}-${endBatch}/${latestBlock} (${
-        ((blockNum - startBlock) / blockRange * 100).toFixed(1)
-    }%)`);
-
-    await processBlockBatch(provider, batchBlocks, metrics, uniqueAddresses);
-    await delay(500); // 每批次间增加基础延迟
-  }
-
-  metrics.uniqueAddresses = uniqueAddresses.size;
-  return metrics;
-}
-
-/**
- * 根据时间间隔获取指标
- */
-export async function getRollupMetricsFromInterval(
-    rpc: string,
-    interval: string,
-    batchSize: number = 1
-): Promise<RollupMetrics> {
-  const blockRange = parseInterval(interval);
-  return getRollupMetrics(rpc, blockRange, batchSize);
-}
-
-/**
- * 解析时间间隔
- */
-function parseInterval(interval: string): number {
-  const match = interval.match(/(\d+)([smhd])/);
-  if (!match) throw new Error('无效的时间间隔格式');
-
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-
-  switch (unit) {
-    case 's': return value;
-    case 'm': return value * 60;
-    case 'h': return value * 3600;
-    case 'd': return value * 86400;
-    case 'W': return value * 30 * 86400;
-    default: throw new Error('无效的时间单位');
-  }
-}
-
-
-/**
  * 获取区块链数据
  * @param chainId 链ID
- * @param timeInterval 时间间隔(毫秒)
+ * @param blockRange 区块范围
  * @returns 区块链数据
  */
 export const fetchBlockchainData = async (
   chainId: string,
-  timeInterval: number = 24 * 60 * 60 * 1000 // 默认为24小时
+  blockRange: number = 1000 // 默认获取最近1000个区块
 ): Promise<BlockchainData> => {
   try {
     // 获取RPC URL
@@ -209,82 +166,63 @@ export const fetchBlockchainData = async (
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     
     // 测试连接
-    // await provider.getNetwork().catch(() => {
-    //   throw new Error(`无法连接到RPC端点: ${rpcUrl}`);
-    // });
+    await provider.getNetwork().catch(() => {
+      throw new Error(`无法连接到RPC端点: ${rpcUrl}`);
+    });
     
     // 获取最新区块号
     const latestBlock = await provider.getBlockNumber();
     
-    // 计算起始区块号 - 假设每个区块大约15秒，计算需要查询的区块数
-    const blockTimeEstimate = 15 * 1000; // 15秒，单位毫秒
-    const blocksToFetch = Math.ceil(timeInterval / blockTimeEstimate);
-    const startBlock = Math.max(0, latestBlock - blocksToFetch + 1);
+    // 计算起始区块号
+    const startBlock = Math.max(0, latestBlock - blockRange + 1);
     
-    // 初始化数据
-    let transactions = 0;
-    let contractCreations = 0;
-    const uniqueAddresses = new Set<string>();
-    let totalGasUsed = 0;
-    
-    // 遍历区块
-    for (let blockNum = startBlock; blockNum <= latestBlock; blockNum++) {
-      // 获取区块
-      const block = await provider.getBlock(blockNum);
-      if (!block) {
-        console.warn(`区块 ${blockNum} 数据为空，跳过`);
-        continue;
-      }
+    // 初始化指标
+    const metrics = {
+      transactions: 0,
+      contractCreations: 0,
+      uniqueAddresses: new Set<string>(),
+      totalGasUsed: BigInt(0)
+    };
+
+    // 设置批处理大小
+    const BATCH_SIZE = 10; // 每批处理10个区块
+    const DELAY_BETWEEN_BATCHES = 500; // 批次之间的延迟（毫秒）
+
+    // 批量处理区块
+    for (let blockNum = startBlock; blockNum <= latestBlock; blockNum += BATCH_SIZE) {
+      const endBatch = Math.min(blockNum + BATCH_SIZE - 1, latestBlock);
+      const batchBlocks = Array.from(
+        { length: endBatch - blockNum + 1 },
+        (_, i) => blockNum + i
+      );
+
+      console.log(`处理区块 ${blockNum}-${endBatch}/${latestBlock} (${((blockNum - startBlock) / blockRange * 100).toFixed(1)}%)`);
+
+      await processBlockBatch(provider, batchBlocks, metrics);
       
-      // 处理交易
-      for (const txHash of block.transactions) {
-        // 获取交易
-        const tx = await provider.getTransaction(txHash);
-        if (!tx) {
-          console.warn(`交易 ${txHash} 数据为空，跳过`);
-          continue;
-        }
-        
-        // 增加交易计数
-        transactions++;
-        
-        // 处理地址
-        if (tx.from) {
-          uniqueAddresses.add(tx.from.toLowerCase());
-        }
-        
-        if (tx.to) {
-          uniqueAddresses.add(tx.to.toLowerCase());
-        } else {
-          // 没有接收方地址的交易通常是合约创建
-          contractCreations++;
-        }
-        
-        // 获取交易回执以获取gas使用量
-        const receipt = await provider.getTransactionReceipt(txHash);
-        if (receipt && receipt.gasUsed) {
-          totalGasUsed += Number(receipt.gasUsed);
-        } else {
-          console.warn(`交易 ${txHash} 的收据为空，跳过Gas计算`);
-        }
+      // 在批次之间添加延迟
+      if (endBatch < latestBlock) {
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
       }
     }
     
     // 返回结果
     return {
-      transactions,
-      contractCreations,
-      activeUsers: uniqueAddresses.size,
-      gasUsed: totalGasUsed
+      transactions: metrics.transactions,
+      contractCreations: metrics.contractCreations,
+      activeUsers: metrics.uniqueAddresses.size,
+      gasUsed: Number(metrics.totalGasUsed),
+      latestBlock
     };
   } catch (error) {
-    console.error('Error fetching blockchain data:', error);
+    console.error(`Error fetching blockchain data for ${chainId}:`, error);
     // 返回默认值
     return {
       transactions: 0,
       contractCreations: 0,
       activeUsers: 0,
-      gasUsed: 0
+      gasUsed: 0,
+      latestBlock: 0
     };
   }
 };
@@ -306,7 +244,8 @@ export const formatTransactionCount = (value: number): string => {
  */
 export const formatGasUsed = (value: number, chainId?: string): string => {
   const symbol = chainId ? getTokenSymbol(chainId) : 'ETH';
-  return `${value.toFixed(2)} ${symbol}`;
+  console.log(`Gas cost calculation: ${value} ${symbol}`);
+  return `${value.toFixed(6)} ${symbol}`;
 };
 
 /**
@@ -364,37 +303,8 @@ export const isChainActive = (lastBlockTime: number): boolean => {
   return lastBlockTime > threeMinutesAgo;
 };
 
-/**
- * 批量获取多个链的区块链数据
- * @param chainIds 链ID数组
- * @param timeInterval 时间间隔(毫秒)
- * @returns 每个链对应的区块链数据
- */
-export const fetchMultipleChainData = async (
-  chainIds: string[],
-  timeInterval: number = 24 * 60 * 60 * 1000
-): Promise<Record<string, BlockchainData>> => {
-  const results: Record<string, BlockchainData> = {};
-  
-  // 创建所有链的请求数组
-  const promises = chainIds.map(async (chainId) => {
-    try {
-      const data = await fetchBlockchainData(chainId, timeInterval);
-      results[chainId] = data;
-    } catch (error) {
-      console.error(`Error fetching data for chain ${chainId}:`, error);
-      // 设置默认值
-      results[chainId] = {
-        transactions: 0,
-        contractCreations: 0,
-        activeUsers: 0,
-        gasUsed: 0
-      };
-    }
-  });
-  
-  // 等待所有请求完成
-  await Promise.all(promises);
-  
-  return results;
-}; 
+
+
+
+
+

@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { Sun, Moon, RefreshCw, Database } from 'lucide-react'
-import { formatTransactionCount, getRollupMetricsFromInterval, formatUserCount} from './utils'
+import { 
+  formatTransactionCount, 
+  formatUserCount, 
+  formatGasUsed,
+  fetchBlockchainData
+} from './utils'
 import { CHAIN_CONFIGS, ChainConfig, addChainConfig } from './config/chains'
-import type {RollupMetrics } from './utils'
+import type { BlockchainData } from './utils'
 
 
 
@@ -17,10 +22,30 @@ export default function Home() {
   const [chainInput, setChainInput] = useState('')
   const [nameInput, setNameInput] = useState('')
   const [rpcUrlInput, setRpcUrlInput] = useState('')
-  const [rollupMetrics, setRollupMetrics] = useState<RollupMetrics | null>(null)
-  const [timeInterval, setTimeInterval] = useState<string>('1m')
+  const [blockchainData, setBlockchainData] = useState<BlockchainData | null>(null)
+  const [allChainsData, setAllChainsData] = useState<Record<string, BlockchainData>>({})
+  const [blockRange, setBlockRange] = useState<string>('1000')
   const [isLoading, setIsLoading] = useState(false)
 
+  // 获取当前选中链的统计数据
+  const currentStatsData = (() => {
+    if (blockchainData && selectedChain) {
+      return [
+        { title: 'Total Transactions', value: formatTransactionCount(blockchainData.transactions) },
+        { title: 'Contract Creations', value: formatTransactionCount(blockchainData.contractCreations) },
+        { title: 'Active Users', value: formatTransactionCount(blockchainData.activeUsers) },
+        { title: 'Gas Used', value: formatGasUsed(blockchainData.gasUsed / 1e18, selectedChain) },
+        { title: 'Latest Block', value: formatTransactionCount(blockchainData.latestBlock) }
+      ];
+    }
+    return [
+      { title: 'Total Transactions', value: '0' },
+      { title: 'Contract Creations', value: '0' },
+      { title: 'Active Users', value: '0' },
+      { title: 'Gas Used', value: '0' },
+      { title: 'Latest Block', value: '0' }
+    ];
+  })();
 
   // 加载选中链的数据
   const loadSelectedChainData = async () => {
@@ -28,10 +53,16 @@ export default function Home() {
 
     try {
       setIsLoading(true);
-      const data = await getRollupMetricsFromInterval(CHAIN_CONFIGS[selectedChain].rpcUrl, timeInterval);
-      setRollupMetrics(data);
+      const range = parseInt(blockRange);
+      if (isNaN(range) || range <= 0) {
+        throw new Error('Invalid block range');
+      }
+      const data = await fetchBlockchainData(selectedChain, range);
+      setBlockchainData(data);
+      setAllChainsData(prev => ({ ...prev, [selectedChain]: data }));
     } catch (error) {
       console.error('Failed to load blockchain data:', error);
+      alert('Failed to load blockchain data. Please check the block range and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -42,10 +73,10 @@ export default function Home() {
     loadSelectedChainData();
   }, []);
 
-  // 当选择的链或时间间隔改变时，重新加载数据
+  // 当选择的链或区块范围改变时，重新加载数据
   useEffect(() => {
     loadSelectedChainData();
-  }, [selectedChain, timeInterval]);
+  }, [selectedChain, blockRange]);
 
   // 处理添加新链
   const addChain = () => {
@@ -158,16 +189,24 @@ export default function Home() {
         </div>
 
         <div className="interval-selector">
-          <span>Time Interval:</span>
-          {['1m', '1h', '4h', '8h', '1D', '1W'].map(interval => (
+          <span>Block Range:</span>
+          {['1', '10', '100', '1000'].map(range => (
             <button
-              key={interval}
-              className={`interval-button ${timeInterval === interval ? 'selected' : ''}`}
-              onClick={() => setTimeInterval(interval)}
+              key={range}
+              className={`interval-button ${blockRange === range ? 'selected' : ''}`}
+              onClick={() => setBlockRange(range)}
             >
-              {interval}
+              {range}
             </button>
           ))}
+          <input
+            type="number"
+            min="1"
+            value={blockRange}
+            onChange={(e) => setBlockRange(e.target.value)}
+            className="custom-range-input"
+            placeholder="Custom range"
+          />
           <button className="refresh-button" onClick={loadSelectedChainData} disabled={isLoading}>
             <RefreshCw size={16} className={isLoading ? 'spinning' : ''} />
             {isLoading ? 'Loading...' : 'Refresh'}
@@ -175,7 +214,7 @@ export default function Home() {
         </div>
       </section>
 
-      {selectedChain && rollupMetrics && (
+      {selectedChain && blockchainData && (
         <section className="blockchain-stats-section">
           <div className="section-header">
             <h2>
@@ -187,36 +226,15 @@ export default function Home() {
           </div>
 
           <div className="blockchain-stats">
-            <div className="stat-card">
-              <div className="stat-title">
-                <Database size={16} />
-                Transactions
+            {currentStatsData.map((stat, index) => (
+              <div className="stat-card" key={index}>
+                <div className="stat-title">
+                  <Database size={16} />
+                  {stat.title}
+                </div>
+                <div className="stat-value">{stat.value}</div>
               </div>
-              <div className="stat-value">{formatTransactionCount(rollupMetrics.transactions)}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">
-                <Database size={16} />
-                Contract Creations
-              </div>
-              <div className="stat-value">{formatTransactionCount(rollupMetrics.contractCreations)}</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">
-                <Database size={16} />
-                Gas Used
-              </div>
-              <div className="stat-value">
-                {rollupMetrics.gasUsed}
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-title">
-                <Database size={16} />
-                Active Users
-              </div>
-              <div className="stat-value">{formatUserCount(rollupMetrics.uniqueAddresses)}</div>
-            </div>
+            ))}
           </div>
         </section>
       )}
