@@ -20,8 +20,8 @@ export interface ChainConfig {
 export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   'espresso-rollup': {
     id: 'espresso-rollup',
-    name: 'espresso-rollup',
-    rpcUrl: 'http://127.0.0.1:8547',
+    name: 'Espresso Rollup',
+    rpcUrl: 'http://43.133.35.225:8547',
     explorerUrl: '',
     tokenSymbol: 'ETH',
     active: true,
@@ -31,43 +31,43 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   'arbitrum': {
     id: 'arbitrum',
     name: 'Arbitrum',
-    rpcUrl: 'https://arbitrum-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
+    rpcUrl: 'https://arbitrum-mainnet.infura.io/v3/9aa3e0c1b5f74215ac48fd2fde07d5ea',
     explorerUrl: 'https://arbiscan.io',
     tokenSymbol: 'ETH',
     active: true,
     chainId: 42161,
     isTestnet: false
   },
-  'optimism': {
-    id: 'optimism',
-    name: 'Optimism',
-    rpcUrl: 'https://optimism-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
-    explorerUrl: 'https://optimistic.etherscan.io',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 10,
-    isTestnet: false
-  },
-  'base': {
-    id: 'base',
-    name: 'Base',
-    rpcUrl: 'https://base-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
-    explorerUrl: 'https://basescan.org',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 8453,
-    isTestnet: false
-  },
-  'zksync': {
-    id: 'zksync',
-    name: 'zkSync Era',
-    rpcUrl: 'https://zksync-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
-    explorerUrl: 'https://explorer.zksync.io',
-    tokenSymbol: 'ETH',
-    active: true,
-    chainId: 324,
-    isTestnet: false
-  }
+  // 'optimism': {
+  //   id: 'optimism',
+  //   name: 'Optimism',
+  //   rpcUrl: 'https://optimism-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
+  //   explorerUrl: 'https://optimistic.etherscan.io',
+  //   tokenSymbol: 'ETH',
+  //   active: true,
+  //   chainId: 10,
+  //   isTestnet: false
+  // },
+  // 'base': {
+  //   id: 'base',
+  //   name: 'Base',
+  //   rpcUrl: 'https://base-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
+  //   explorerUrl: 'https://basescan.org',
+  //   tokenSymbol: 'ETH',
+  //   active: true,
+  //   chainId: 8453,
+  //   isTestnet: false
+  // },
+  // 'zksync': {
+  //   id: 'zksync',
+  //   name: 'zkSync Era',
+  //   rpcUrl: 'https://zksync-mainnet.infura.io/v3/eb2453eac5754c27aca1e4c97c0bb204',
+  //   explorerUrl: 'https://explorer.zksync.io',
+  //   tokenSymbol: 'ETH',
+  //   active: true,
+  //   chainId: 324,
+  //   isTestnet: false
+  // }
 };
 
 // 获取所有支持的链ID列表
