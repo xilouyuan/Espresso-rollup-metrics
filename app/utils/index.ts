@@ -3,7 +3,7 @@
  */
 
 // 导入需要的库
-import { ethers, JsonRpcProvider } from 'ethers';
+import { ethers } from 'ethers';
 import { 
   getRpcUrl, 
   getExplorerUrl as getConfigExplorerUrl, 
@@ -27,15 +27,6 @@ export interface RollupMetrics {
   uniqueAddresses: number;
 }
 
-// 输入验证
-function validateInputs(rpcUrl: string, blockRange: number): void {
-  if (!rpcUrl.startsWith('http')) {
-    throw new Error('无效的 RPC URL 格式' + rpcUrl);
-  }
-  if (!Number.isInteger(blockRange) || blockRange <= 0) {
-    throw new Error('区块范围必须为正整数');
-  }
-}
 
 // 延迟函数
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -74,7 +65,6 @@ async function withRetry<T>(
           continue;
         }
       }
-
       throw error; // 非速率限制错误直接抛出
     }
   }
@@ -145,38 +135,26 @@ async function processBlockBatch(
   await Promise.all(batchPromises);
 }
 
-/**
- * 获取区块链数据
- * @param chainId 链ID
- * @param blockRange 区块范围
- * @returns 区块链数据
- */
 export const fetchBlockchainData = async (
-  chainId: string,
-  blockRange: number = 1000 // 默认获取最近1000个区块
+    chainId: string,
+    blockRange: number = 1000
 ): Promise<BlockchainData> => {
   try {
-    // 获取RPC URL
     const rpcUrl = getRpcUrl(chainId);
     if (!rpcUrl) {
       throw new Error(`No RPC URL available for chain: ${chainId}`);
     }
-    
-    // 创建provider
+
     const provider = new ethers.JsonRpcProvider(rpcUrl);
-    
-    // 测试连接
+
     await provider.getNetwork().catch(() => {
       throw new Error(`无法连接到RPC端点: ${rpcUrl}`);
     });
-    
-    // 获取最新区块号
-    const latestBlock = await provider.getBlockNumber();
-    
-    // 计算起始区块号
+
+    // 使用 `withRetry` 获取最新区块号，避免 RPC 失败
+    const latestBlock = await withRetry(() => provider.getBlockNumber());
     const startBlock = Math.max(0, latestBlock - blockRange + 1);
-    
-    // 初始化指标
+
     const metrics = {
       transactions: 0,
       contractCreations: 0,
@@ -184,29 +162,23 @@ export const fetchBlockchainData = async (
       totalGasUsed: BigInt(0)
     };
 
-    // 设置批处理大小
-    const BATCH_SIZE = 10; // 每批处理10个区块
-    const DELAY_BETWEEN_BATCHES = 500; // 批次之间的延迟（毫秒）
+    const BATCH_SIZE = 10;
+    const DELAY_BETWEEN_BATCHES = 500;
 
-    // 批量处理区块
     for (let blockNum = startBlock; blockNum <= latestBlock; blockNum += BATCH_SIZE) {
       const endBatch = Math.min(blockNum + BATCH_SIZE - 1, latestBlock);
-      const batchBlocks = Array.from(
-        { length: endBatch - blockNum + 1 },
-        (_, i) => blockNum + i
-      );
+      const batchBlocks = Array.from({ length: endBatch - blockNum + 1 }, (_, i) => blockNum + i);
 
       console.log(`处理区块 ${blockNum}-${endBatch}/${latestBlock} (${((blockNum - startBlock) / blockRange * 100).toFixed(1)}%)`);
 
-      await processBlockBatch(provider, batchBlocks, metrics);
-      
-      // 在批次之间添加延迟
+      // 使用 `withRetry` 处理区块数据，防止批量请求失败
+      await withRetry(() => processBlockBatch(provider, batchBlocks, metrics));
+
       if (endBatch < latestBlock) {
-        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+        await delay(DELAY_BETWEEN_BATCHES);
       }
     }
-    
-    // 返回结果
+
     return {
       transactions: metrics.transactions,
       contractCreations: metrics.contractCreations,
@@ -216,7 +188,6 @@ export const fetchBlockchainData = async (
     };
   } catch (error) {
     console.error(`Error fetching blockchain data for ${chainId}:`, error);
-    // 返回默认值
     return {
       transactions: 0,
       contractCreations: 0,
@@ -226,6 +197,7 @@ export const fetchBlockchainData = async (
     };
   }
 };
+
 
 /**
  * 格式化交易数量

@@ -1,18 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import {useState, useEffect, useCallback} from 'react'
 import { Sun, Moon, RefreshCw, Database } from 'lucide-react'
 import { 
   formatTransactionCount, 
-  formatUserCount, 
   formatGasUsed,
   fetchBlockchainData
 } from './utils'
 import { CHAIN_CONFIGS, ChainConfig, addChainConfig } from './config/chains'
 import type { BlockchainData } from './utils'
-
-
-
 
 
 export default function Home() {
@@ -23,7 +19,6 @@ export default function Home() {
   const [nameInput, setNameInput] = useState('')
   const [rpcUrlInput, setRpcUrlInput] = useState('')
   const [blockchainData, setBlockchainData] = useState<BlockchainData | null>(null)
-  const [allChainsData, setAllChainsData] = useState<Record<string, BlockchainData>>({})
   const [blockRange, setBlockRange] = useState<string>('1000')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -48,35 +43,29 @@ export default function Home() {
   })();
 
   // 加载选中链的数据
-  const loadSelectedChainData = async () => {
+  const loadSelectedChainData = useCallback(async () => {
     if (!selectedChain) return;
 
     try {
       setIsLoading(true);
       const range = parseInt(blockRange);
       if (isNaN(range) || range <= 0) {
-        throw new Error('Invalid block range');
+        throw new Error("Invalid block range");
       }
       const data = await fetchBlockchainData(selectedChain, range);
       setBlockchainData(data);
-      setAllChainsData(prev => ({ ...prev, [selectedChain]: data }));
     } catch (error) {
-      console.error('Failed to load blockchain data:', error);
-      alert('Failed to load blockchain data. Please check the block range and try again.');
+      console.error("Failed to load blockchain data:", error);
+      alert("Failed to load blockchain data. Please check the block range and try again.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // 初始加载数据
-  useEffect(() => {
-    loadSelectedChainData();
-  }, []);
+  }, [selectedChain, blockRange]);
 
   // 当选择的链或区块范围改变时，重新加载数据
   useEffect(() => {
-    loadSelectedChainData();
-  }, [selectedChain, blockRange]);
+    loadSelectedChainData().catch((error) => console.error(error));
+  }, [loadSelectedChainData]);
 
   // 处理添加新链
   const addChain = () => {
